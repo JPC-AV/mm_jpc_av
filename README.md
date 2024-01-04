@@ -1,1 +1,11 @@
-Coming soon
+# Scripts for management of JPC AV files
+- begin & end
+  - these two scripts are meant to be run at the beginning and ending of the day, respectively.
+  - they each pop up dialog boxes that collect some basic user information about the day's work.
+  - required dependencies:
+    - swfitDialog
+      - https://github.com/swiftDialog/swiftDialog/releases
+      - go with the latest .pkg
+      - installs correctly to /usr/local/bin/
+    - jq
+      - `brew install jq`
