@@ -10,8 +10,6 @@
     - jq
       - `brew install jq`
      
-Sure! Below is a **GitHub README** for your script, providing a clear explanation of its functionality, usage, and installation instructions.
-
 ---
 
 # MKV Tag Extractor
@@ -149,10 +147,3 @@ DESCRIPTION: 00:01:17 - Recap of Thirteenth Annual Black Achievement Awards.
 TERMS_OF_USE: Some or all of this video may be subject to copyright.
 ```
 
-## License
-
-This script is released under the MIT License. See the [LICENSE](LICENSE) file for more details.
-
----
-
-Let me know if you need any adjustments to the README!
