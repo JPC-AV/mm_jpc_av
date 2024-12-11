@@ -28,32 +28,33 @@ This script is designed to extract metadata, specifically the `tags` section, fr
 
 ## Requirements
 
-- **Python 3.x**
-- **ffprobe** (part of FFmpeg)
-- **colorama** (for colored output in the terminal)
+### Dependencies
 
-### Install ffprobe
+To run this script, you'll need the following Python dependency:
 
-If you don't have **ffprobe** installed, you can install FFmpeg, which includes ffprobe:
+- **colorama**: For colored terminal output.
 
-- **macOS (Homebrew)**:
+  Install it using:
+  ```bash
+  pip install colorama
+  ```
+
+### External Tools
+
+- **ffprobe**: This script uses `ffprobe` (part of the **FFmpeg** suite) to extract metadata from `.mkv` files. 
+
+  You can install FFmpeg (which includes ffprobe) as follows:
+
+  - **macOS (Homebrew)**:
     ```bash
     brew install ffmpeg
     ```
-- **Linux (apt)**:
+  - **Linux (apt)**:
     ```bash
     sudo apt-get install ffmpeg
     ```
-- **Windows**: 
+  - **Windows**: 
     Download FFmpeg from [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html) and add it to your PATH.
-
-### Install Dependencies
-
-You need to install the `colorama` package. Use pip:
-
-```bash
-pip install colorama
-```
 
 ## Usage
 
@@ -146,4 +147,3 @@ DESCRIPTION: 00:01:17 - Recap of Thirteenth Annual Black Achievement Awards.
 
 TERMS_OF_USE: Some or all of this video may be subject to copyright.
 ```
-
