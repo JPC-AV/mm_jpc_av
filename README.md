@@ -1,15 +1,113 @@
-# Scripts for management of JPC AV files
-- begin & end
-  - these two scripts are meant to be run at the beginning and ending of the day, respectively.
-  - they each pop up dialog boxes that collect some basic user information about the day's work.
-  - required dependencies:
-    - swfitDialog
-      - https://github.com/swiftDialog/swiftDialog/releases
-      - go with the latest .pkg
-      - installs correctly to /usr/local/bin/
-    - jq
-      - `brew install jq`
-     
+
+```markdown
+# JPC AV: Begin and End The Day Scripts
+
+This repository contains two Bash scripts designed to help users track their day by collecting relevant information in a structured format. One script, `begin_the_day.sh`, is used at the start of the day to capture initial thoughts, and the other, `end_the_day.sh`, is used at the end of the day to capture reflections on completed work. Both scripts save the collected data in both JSON and plain text formats.
+
+## Features
+
+- **Begin The Day (`begin_the_day.sh`)**:
+  - Creates a folder in the user's home directory named `JPC_AV_YYYYMMDD` (where `YYYYMMDD` is the current date).
+  - Collects the user's name and thoughts about the day ahead using a graphical dialog interface.
+  - Saves the collected information in both `.json` and `.txt` files.
+
+- **End The Day (`end_the_day.sh`)**:
+  - Similar to the "Begin The Day" script, this script creates a folder named `JPC_AV_YYYYMMDD`.
+  - Collects reflections on the work completed during the day, including thoughts on the work and the formats digitized.
+  - Saves the collected data in `.json` and `.txt` files.
+
+Both scripts:
+- Check if the folder already exists and provide feedback to the user.
+- Provide clear color-coded success or error messages in the terminal using ANSI escape codes.
+- Use `dialog` for the graphical interface and `jq` for parsing JSON data.
+
+## Prerequisites
+
+- **zsh**: These scripts are written for `zsh`. Ensure you're using `zsh` as your shell.
+- **dialog**: The script uses the `dialog` command to create a graphical interface for user input. Install it using your package manager (e.g., `brew install dialog` on macOS).
+- **jq**: `jq` is required to parse JSON data. You can install it via `brew install jq` or `apt-get install jq`.
+
+## Installation
+
+1. Ensure that `zsh`, `dialog`, and `jq` are installed on your system.
+
+2. Clone the repository:
+
+```bash
+git clone https://github.com/yourusername/jpc-av-begin-end-the-day.git
+cd jpc-av-begin-end-the-day
+```
+
+3. Give execution permission to the scripts:
+
+```bash
+chmod +x begin_the_day.sh end_the_day.sh
+```
+
+## Usage
+
+To use the scripts, simply run them:
+
+- **Begin The Day**:
+
+```bash
+./begin_the_day.sh
+```
+
+- **End The Day**:
+
+```bash
+./end_the_day.sh
+```
+
+### What Happens When You Run the Scripts?
+
+1. **Folder Creation**: Both scripts check if a folder named `JPC_AV_YYYYMMDD` exists in the user's home directory. If it doesn't, the folder is created.
+
+2. **Dialog for User Input**:
+   - **Begin The Day**: Prompts for your name and thoughts on the day ahead.
+   - **End The Day**: Prompts for your reflections on the day, including the formats digitized and the number of formats digitized.
+
+3. **Data Saving**: Both scripts save the collected information in both `.json` and `.txt` formats in the newly created folder.
+
+4. **Confirmation**: A success message is displayed in the terminal to confirm that the data has been saved.
+
+### Example Output
+
+For **Begin The Day**:
+
+```bash
+Folder 'JPC_AV_20241211' created successfully.
+Name: "David Sohl"
+Begin The Day Thoughts: "I'm excited to start working on the digitization project today."
+Begin The Day information saved to /Users/username/JPC_AV_20241211/
+```
+
+For **End The Day**:
+
+```bash
+Folder 'JPC_AV_20241211' created successfully.
+End The Day Thoughts: "It was a productive day. I digitized several formats."
+Format Digitized: "VHS"
+Number Digitized: 5
+End The Day information saved to /Users/username/JPC_AV_20241211/
+```
+
+## Script Customization
+
+You can customize both scripts by editing the following:
+
+- The title and message in the `dialog` command.
+- The selectable options for names, formats, and other fields.
+- The file paths and names where the data is saved.
+
+## Acknowledgments
+
+- [dialog](https://invisible-island.net/dialog/) for creating the graphical dialog interface.
+- [jq](https://stedolan.github.io/jq/) for JSON parsing.
+
+```
+
 ---
 
 # MKV Tag Extractor
