@@ -146,14 +146,15 @@ def process_directory(directory):
                 pass
 
 def main():
-    # Parse command-line arguments
+    # Parse command-line arguments for multiple directories
     parser = argparse.ArgumentParser(description="Extract 'tags' from all MKV files in a directory and subdirectories, saving as JSON and TXT")
-    parser.add_argument("directory", help="Path to the directory containing MKV files")
+    parser.add_argument("directories", help="Paths to directories containing MKV files", nargs='+')
 
     args = parser.parse_args()
 
-    # Process all MKV files in the given directory and subdirectories
-    process_directory(args.directory)
+    # Process each directory passed as argument
+    for directory in args.directories:
+        process_directory(directory)
 
 if __name__ == '__main__':
     main()
