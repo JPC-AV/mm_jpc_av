@@ -113,7 +113,7 @@ class ConversionLog:
                 self.lines.append(f"Error: {error_msg}")
         self.lines.append("")
     
-    def finalize(self, overall_success: bool):
+    def finalize(self, overall_success: bool, elapsed_seconds: float = None):
         """Add footer and write log to disk."""
         end_time = datetime.now()
         elapsed = end_time - self.start_time
@@ -234,6 +234,8 @@ def convert_files(mov_files: list, dry_run: bool = False, no_access: bool = Fals
     error_count = 0
     
     for i, mov_file in enumerate(mov_files, 1):
+        file_start_time = time.time()
+        
         base_name = mov_file.stem  # e.g., "JPC_AV_00013"
         output_dir = mov_file.parent / base_name
         output_file = output_dir / f"{base_name}.mkv"
@@ -262,6 +264,11 @@ def convert_files(mov_files: list, dry_run: bool = False, no_access: bool = Fals
         #                   (preserves full 720x486 frame instead of cropping to 704x480)
         # -map 0:v -map 0:a: Maps only video and audio streams
         #                    (excludes timecode/tmcd data streams which MKV doesn't support)
+        # -vf setfield=bff: Marks video as interlaced bottom-field-first
+        # -top 0: Indicates BFF for codec
+        # -flags +ilme+ildct: Enables interlaced motion estimation and DCT
+        # -metadata creation_time=now: Sets encoded date
+        # -vtag FFV1: Forces V_MS/VFW/FOURCC codec ID for compatibility
         ffv1_cmd = [
             "ffmpeg",
             "-apply_cropping", "0",
@@ -275,6 +282,11 @@ def convert_files(mov_files: list, dry_run: bool = False, no_access: bool = Fals
             "-g", "1",
             "-slicecrc", "1",
             "-slices", "24",
+            "-vf", "setfield=bff",
+            "-top", "0",
+            "-flags", "+ilme+ildct",
+            "-vtag", "FFV1",
+            "-metadata", "creation_time=now",
             "-c:a", "flac",
             "-f", "matroska",
             "-n",
@@ -347,7 +359,15 @@ def convert_files(mov_files: list, dry_run: bool = False, no_access: bool = Fals
         
         # Finalize log
         log.finalize(overall_success)
+        
+        # Calculate and display per-file elapsed time
+        file_elapsed = time.time() - file_start_time
+        file_mins, file_secs = divmod(int(file_elapsed), 60)
+        file_hours, file_mins = divmod(file_mins, 60)
+        file_time_str = f"{file_hours:02d}:{file_mins:02d}:{file_secs:02d}"
+        
         print_status("success", f"Log saved: {log_file.name}", indent=3)
+        print(f"       {C.DIM}Elapsed: {file_time_str}{C.RESET}")
         success_count += 1
     
     # Summary
@@ -356,10 +376,11 @@ def convert_files(mov_files: list, dry_run: bool = False, no_access: bool = Fals
     if dry_run:
         print(f"  {C.YELLOW}DRY RUN - No files were converted{C.RESET}")
     else:
-        print(f"  {C.GREEN}Converted:{C.RESET} {success_count}")
+        print(f"  {C.GREEN}Converted:{C.RESET}  {success_count}")
         if error_count > 0:
-            print(f"  {C.RED}Errors:{C.RESET}    {error_count}")
-    print()
+            print(f"  {C.RED}Errors:{C.RESET}     {error_count}")
+    
+    return success_count, error_count
 
 
 # ==============================
@@ -496,11 +517,11 @@ def main():
     # Run conversion
     convert_files(mov_files, dry_run=args.dry_run, no_access=args.no_access)
     
-    # Show elapsed time
+    # Show total elapsed time
     elapsed = time.time() - start_time
     hours, remainder = divmod(int(elapsed), 3600)
     minutes, seconds = divmod(remainder, 60)
-    print(f"  {C.DIM}Elapsed: {hours:02d}:{minutes:02d}:{seconds:02d}{C.RESET}\n")
+    print(f"  {C.BOLD}Total time:{C.RESET} {hours:02d}:{minutes:02d}:{seconds:02d}\n")
 
 
 if __name__ == "__main__":
