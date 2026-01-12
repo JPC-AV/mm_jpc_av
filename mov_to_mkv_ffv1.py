@@ -444,7 +444,7 @@ def main():
         # --single mode: process specific files
         mov_files = []
         for f in args.single:
-            p = Path(f)
+            p = Path(f).resolve()  # Get absolute path
             if not p.exists():
                 print_status("error", f"File not found: {p}")
                 sys.exit(1)
@@ -452,10 +452,20 @@ def main():
                 print_status("error", f"Not a .mov file: {p}")
                 sys.exit(1)
             mov_files.append(p)
+        
+        # Find common parent directory for base path display
+        if len(mov_files) == 1:
+            base_path = mov_files[0].parent
+        else:
+            # Find common ancestor
+            base_path = Path(*[p for p in mov_files[0].parts if all(p in f.parts for f in mov_files)])
+            if not base_path.parts:
+                base_path = mov_files[0].parent
+        
         mode_desc = f"Processing {len(mov_files)} specified file(s)"
     else:
         # -d mode: process all .mov files in directory
-        input_dir = Path(args.directory)
+        input_dir = Path(args.directory).resolve()  # Get absolute path
         
         if not input_dir.exists():
             print_status("error", f"Directory not found: {input_dir}")
@@ -466,13 +476,15 @@ def main():
             sys.exit(1)
         
         mov_files = sorted(input_dir.glob("*.mov"))
-        mode_desc = f"Directory: {input_dir}"
+        base_path = input_dir
+        mode_desc = f"Directory mode"
     
     # Print header
     print(f"\n{C.BOLD}{C.CYAN}{'─' * 60}{C.RESET}")
     print(f"{C.BOLD}{C.CYAN}  MOV to MKV Conversion{C.RESET}")
     print(f"{C.BOLD}{C.CYAN}{'─' * 60}{C.RESET}")
     print(f"  {mode_desc}")
+    print(f"  Base path: {C.WHITE}{base_path}{C.RESET}")
     if args.dry_run:
         print(f"  {C.YELLOW}{C.BOLD}DRY RUN{C.RESET}")
     if args.no_access:
