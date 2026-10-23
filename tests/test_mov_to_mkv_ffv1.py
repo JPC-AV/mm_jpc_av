@@ -665,9 +665,16 @@ class ConverterTest(unittest.TestCase):
         for text in ("--overwrite-all", "EXISTING OUTPUTS", "EXIT STATUS", "130", "129",
                      "failed or was\n      interrupted",
                      "existing access file (not remade or checked)", "143",
-                     "ffmpeg is still starting can escape that: afterwards, check that no\n"
-                     "      ffmpeg is still running", "Before real use"):
+                     "Before real use"):
             self.assertIn(text, out)
+        flat = " ".join(out.split())            # the startup-interruption guidance, any wrapping
+        for text in ("ffmpeg is still starting can escape that",
+                     "identify this conversion's ffmpeg by its PID and full command, "
+                     "including its source and output paths",
+                     "stop only that process - leave unrelated capture or encoding jobs running",
+                     "If you cannot identify it confidently, ask for help before stopping anything",
+                     "Treat this conversion's outputs as incomplete before retrying"):
+            self.assertIn(text, flat)
 
 
 if __name__ == "__main__":

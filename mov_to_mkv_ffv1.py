@@ -282,9 +282,12 @@ def get_colored_help():
       --overwrite - or --overwrite-all if its access step failed or was
       interrupted, since --overwrite keeps an existing access file
     {C.DIM}•{C.RESET} An interruption normally stops ffmpeg too, but one that lands while
-      ffmpeg is still starting can escape that: afterwards, check that no
-      ffmpeg is still running, and treat that file's outputs as incomplete,
-      before retrying
+      ffmpeg is still starting can escape that. Afterwards, identify this
+      conversion's ffmpeg by its PID and full command, including its source
+      and output paths, and stop only that process - leave unrelated capture
+      or encoding jobs running. If you cannot identify it confidently, ask
+      for help before stopping anything. Treat this conversion's outputs as
+      incomplete before retrying.
     {C.DIM}•{C.RESET} Before real use, check the settings against the batch and validate a
       representative conversion (see the README)
 """
