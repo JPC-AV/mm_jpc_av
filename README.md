@@ -1,11 +1,12 @@
 # JPC AV Scripts
 
-This repository contains three scripts: two Bash scripts (`begin_the_day.sh` and `end_the_day.sh`) for tracking daily activities, and one Python script (`mkv_tag_extractor.py`) for extracting metadata from `.mkv` files. It also has `mov_to_mkv_ffv1.py`, a MOV to FFV1/MKV converter - see [MOV to MKV Converter](#mov-to-mkv-converter).
+This repository contains two Bash scripts (`begin_the_day.sh` and `end_the_day.sh`) for tracking daily activities, and three Python scripts: `mkv_tag_extractor.py` for extracting metadata from `.mkv` files; `mov_to_mkv_ffv1.py`, a MOV to FFV1/MKV converter - see [MOV to MKV Converter](#mov-to-mkv-converter); and `mkvnote_paths.py`, which fills in the file paths of an mkvnote CSV - see [MKV Paths for mkvnote](#mkv-paths-for-mkvnote).
 
 ## Table of Contents
 1. [Begin and End The Day Scripts](#begin-and-end-the-day-scripts)
 2. [MKV Tag Extractor Script](#mkv-tag-extractor-script)
 3. [MOV to MKV Converter](#mov-to-mkv-converter)
+4. [MKV Paths for mkvnote](#mkv-paths-for-mkvnote)
 
 ---
 
@@ -236,6 +237,67 @@ python3 tests/test_mov_to_mkv_ffv1.py
 
 Synthetic files and a fake `ffmpeg` only - see the limits above.
 
+
+---
+
+## MKV Paths for mkvnote
+
+`mkvnote_paths.py` fills in the `filename` column of a CSV exported from Airtable for [mkvnote](https://github.com/NMAAHC/mkvnote). Every other column comes from Airtable. The script finds each row's `JPC_AV_xxxxx.mkv` on the JPCARCHIVE server and writes a copy of the CSV with each file's full path, ready for mkvnote.
+
+### Requirements
+
+- Python 3.9 or later (standard library only).
+- JPCARCHIVE mounted at `/Volumes/JPCARCHIVE/`. If it isn't, the script stops at once (exit 2).
+- A CSV with a `filename` column (it may be empty) and a `CATALOG_NUMBER` column (`JPC_AV_` and 5 digits). `DATE_DIGITIZED` (`yyyy-mm-dd`) is optional, but it makes the search faster.
+
+### Usage
+
+```bash
+python3 mkvnote_paths.py ~/Downloads/jpc_mkvnote_b1.csv
+python3 mkvnote_paths.py ~/Downloads/jpc_mkvnote_b1.csv -o ~/Desktop
+python3 mkvnote_paths.py ~/Downloads/jpc_mkvnote_b1.csv --verify-uniqueness
+```
+
+- `--root DIR` searches somewhere other than `/Volumes/JPCARCHIVE/`.
+- `-o FOLDER` writes the new CSV into that folder instead of next to the CSV.
+- `--verify-uniqueness` searches the whole server for every row and flags any file found more than once. It is slower.
+
+`python3 mkvnote_paths.py --help` describes the same options.
+
+### What it does
+
+- Each `.mkv` must be named after its catalog number and sit directly in a folder with the same name, or a name starting with that number and `_` (e.g. `JPC_AV_01548_refid_<ref_id>/JPC_AV_01548.mkv`).
+- It looks first in folders named after each row's `DATE_DIGITIZED` (`yyyymmdd`, up to 4 levels below the root). Rows not found there are searched for across the rest of the server, stopping once every row is found: one copy of each file is assumed unless `--verify-uniqueness` is given.
+- Hidden folders (names starting with `.`), symlinked folders and the inside of `JPC_AV_` folders are never searched.
+- Completely blank rows are dropped. Every other cell is copied unchanged.
+- It only reads the server. The one file it writes is the new CSV, `<csv name>_mkvnote-paths_<yyyymmdd_hhmmss>.csv`, next to the CSV or in the `-o` folder. It never overwrites a file.
+
+### The report
+
+The report lists the rows that need attention: not found, a missing, invalid or repeated catalog number, or a path mkvnote can't use (one containing `'` or a line break). It ends with one of:
+
+- `Ready for mkvnote: <file>` - every row has its path.
+- `NOT ready` - fix the rows listed (or remove them from the CSV) before running mkvnote.
+- A **STOP** banner - a filename already in the CSV does not match the server, or a file was found twice. A person must check those rows before the CSV goes to mkvnote.
+
+Folders that could not be read are listed as warnings. With `--verify-uniqueness`, any such folder means nothing is saved, because a second copy can't be ruled out.
+
+### Exit status
+
+| Code | Meaning |
+|---|---|
+| 0 | Saved and ready for mkvnote |
+| 1 | Saved but NOT ready (rows need attention, or STOP); or, with `--verify-uniqueness`, folders could not be read and nothing was saved |
+| 2 | No usable CSV: a problem with the arguments or the CSV, JPCARCHIVE not mounted, or the new CSV could not be written (a partial file that could not be deleted is named) |
+| 130 | Interrupted (Ctrl-C); the message says whether the new CSV was saved, or names a partial file left behind |
+
+### Tests
+
+```bash
+python3 tests/test_mkvnote_paths.py
+```
+
+Synthetic folders, placeholder `.mkv` files and an invented CSV only; the tests never touch `/Volumes/JPCARCHIVE`. They check the script's decisions, report and exit statuses, not SMB behaviour or how long a search of the real server takes.
 
 ---
 
