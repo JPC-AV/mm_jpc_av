@@ -30,12 +30,13 @@ class Colors:
     GREEN = '\033[92m'
     YELLOW = '\033[93m'
     RED = '\033[91m'
+    CYAN = '\033[96m'
     RESET = '\033[0m'
 
     @classmethod
     def disable(cls):
         """Disable colors (for non-TTY output)."""
-        for attr in ['BOLD', 'DIM', 'GREEN', 'YELLOW', 'RED', 'RESET']:
+        for attr in ['BOLD', 'DIM', 'GREEN', 'YELLOW', 'RED', 'CYAN', 'RESET']:
             setattr(cls, attr, '')
 
 # Disable colors if not a TTY
@@ -63,60 +64,112 @@ DATE_RE = re.compile(r"([0-9]{4})-([0-9]{2})-([0-9]{2})")
 # single-quoted XPath and reads the filename column line by line.
 UNSAFE_PATH_CHARS = ("'", "\n", "\r")
 
-# Exit statuses (see EXIT STATUS in the help)
+# Exit statuses (see EXIT in the help)
 EXIT_READY = 0        # saved; every row has its path
 EXIT_ATTENTION = 1    # saved but not ready; or --verify-uniqueness could
                       # not read everything, so nothing was saved
 EXIT_ERROR = 2        # nothing usable saved
 EXIT_INTERRUPTED = 130
 
-DESCRIPTION = """\
-Fill in the filename column of an mkvnote CSV.
+# ==============================
+# HELP
+# ==============================
+# The -h screen and argument errors follow the layout of the aspace_jpc_av
+# tools (console.py there): a banner, sections in a fixed order, aligned
+# option lists; on a mistake, the usage line, the options and the error.
 
-Reads a CSV exported from Airtable for mkvnote, finds each row's
-JPC_AV_xxxxx.mkv on the JPCARCHIVE server, and writes a copy of the CSV
-with each file's full path in the filename column. Completely blank rows
-are dropped; every other cell is copied unchanged. The server is only
-read: the one file written is the new CSV."""
+HELP_TITLE = "Fill the filename column of an mkvnote CSV"
+USAGE = "CSV [options]"
 
-EPILOG = f"""\
-how files are found:
-  Each .mkv is named after its row's CATALOG_NUMBER (JPC_AV_ and 5 digits)
-  and sits directly in a folder with the same name, or a name starting
-  with that number and "_" (JPC_AV_01548_refid_.../JPC_AV_01548.mkv).
-  1. Date folders first: folders named yyyymmdd from DATE_DIGITIZED, up to
-     {DATE_SCAN_DEPTH} levels below {DEFAULT_ROOT}
-  2. Then the rest of the server, for rows not found in a date folder. The
-     search stops once every row is found: one copy of each file is
-     assumed unless --verify-uniqueness is given.
-  Hidden folders (names starting with ".") and symlinked folders are
-  never searched.
+ARGUMENTS = [("CSV", "", "The CSV exported from Airtable for mkvnote")]
+OPTIONS = [
+    ("--root DIR", "", f"Search DIR instead of {DEFAULT_ROOT}"),
+    ("-o FOLDER", "", "Save the new CSV in FOLDER instead"),
+    ("--verify-uniqueness", "", "Flag files found twice (full search; slow)"),
+]
 
-output:
-  <csv name>_mkvnote-paths_<yyyymmdd_hhmmss>.csv next to the CSV, or in
-  the -o folder. An existing file is never overwritten.
 
-report:
-  Lists the rows that need attention (not found, a missing, invalid or
-  repeated catalog number, a path mkvnote can't use), then ends with:
-    Ready for mkvnote: <file>   every row has its path
-    NOT ready                   fix the rows listed first
-    STOP (a big banner)         a filename already in the CSV does not
-                                match the server, or a file was found
-                                twice: a person must check those rows
+def render_options(options, indent="    "):
+    """An option list as aligned, colorized lines."""
+    C = Colors
+    lines = []
+    for flag, note, desc in options:
+        note_txt = f"{C.YELLOW}{note}{C.RESET}  " if note else ""
+        pad = " " * max(1, 33 - len(flag))
+        lines.append(f"{indent}{C.CYAN}{flag}{C.RESET}{pad}{note_txt}{desc}")
+    return "\n".join(lines)
 
-exit status:
-  0    saved and ready for mkvnote
-  1    saved but NOT ready (rows need attention, or STOP); or, with
+
+def get_colored_help():
+    """The -h screen: the banner, then DESCRIPTION, USAGE, ARGUMENTS,
+    OPTIONS, this script's own section, EXAMPLES, OUTPUT, EXIT."""
+    C = Colors
+    rule = "=" * 79
+    sections = [
+        ("DESCRIPTION", """    Reads a CSV exported from Airtable for mkvnote, finds each row's
+    JPC_AV_xxxxx.mkv on the JPCARCHIVE server, and writes a copy of the CSV
+    with each file's full path in the filename column. Completely blank rows
+    are dropped; every other cell is copied unchanged. The server is only
+    read: the one file written is the new CSV."""),
+        ("USAGE", f"""    {C.GREEN}${C.RESET} python3 mkvnote_paths.py {USAGE}"""),
+        ("ARGUMENTS", render_options(ARGUMENTS)),
+        ("OPTIONS", render_options(OPTIONS)),
+        ("HOW FILES ARE FOUND", f"""    Each .mkv is named after its row's CATALOG_NUMBER (JPC_AV_ and 5 digits)
+    and sits directly in a folder with the same name, or a name starting
+    with that number and "_" (JPC_AV_01548_refid_.../JPC_AV_01548.mkv).
+    {C.GREEN}1.{C.RESET} Date folders first: folders named yyyymmdd from DATE_DIGITIZED, up to
+       {DATE_SCAN_DEPTH} levels below {DEFAULT_ROOT}
+    {C.GREEN}2.{C.RESET} Then the rest of the server, for rows not found in a date folder. The
+       search stops once every row is found: one copy of each file is
+       assumed unless --verify-uniqueness is given.
+    Hidden folders (names starting with ".") and symlinked folders are
+    never searched."""),
+        ("EXAMPLES", f"""    {C.GREEN}${C.RESET} python3 mkvnote_paths.py ~/Downloads/batch.csv
+    {C.GREEN}${C.RESET} python3 mkvnote_paths.py ~/Downloads/batch.csv -o ~/Desktop
+    {C.GREEN}${C.RESET} python3 mkvnote_paths.py ~/Downloads/batch.csv --verify-uniqueness"""),
+        ("OUTPUT", f"""    New CSV:  <csv name>_mkvnote-paths_<yyyymmdd_hhmmss>.csv
+              {C.DIM}next to the CSV, or in the -o folder; an existing file is
+              never overwritten{C.RESET}
+    Report:   the rows that need attention (not found, a missing, invalid or
+              repeated catalog number, a path mkvnote can't use), then:
+              Ready for mkvnote: <file>  every row has its path
+              NOT ready                  fix the rows listed first
+              STOP (a big banner)        a filename already in the CSV does
+                                         not match the server, or a file was
+                                         found twice: a person must check
+                                         those rows"""),
+        ("EXIT", f"""    {C.GREEN}0{C.RESET}  saved and ready for mkvnote
+    {C.YELLOW}1{C.RESET}  saved but NOT ready (rows need attention, or STOP); or, with
        --verify-uniqueness, folders could not be read - nothing saved
-  2    no usable CSV: a problem with the arguments or the CSV,
+    {C.RED}2{C.RESET}  no usable CSV: a problem with the arguments or the CSV,
        JPCARCHIVE not mounted, or the new CSV could not be written
        (a partial file that could not be deleted is named)
-  130  interrupted (Ctrl-C); the message says whether the new CSV
-       was saved, or names a partial file left behind
+    {C.YELLOW}130{C.RESET} interrupted (Ctrl-C); the message says whether the new CSV
+       was saved, or names a partial file left behind"""),
+    ]
+    lines = [f"{C.BOLD}{C.CYAN}{rule}", f"{HELP_TITLE:^79}".rstrip(), f"{rule}{C.RESET}"]
+    for name, body in sections:
+        lines += ["", f"{C.BOLD}{name}{C.RESET}", body]
+    return "\n" + "\n".join(lines) + "\n"
 
-example:
-  python3 mkvnote_paths.py ~/Downloads/jpc_mkvnote_b1.csv"""
+
+class HelpParser(argparse.ArgumentParser):
+    """argparse showing get_colored_help() for -h; on a mistake, the usage
+    line, the option list and the error in red, then exit 2."""
+
+    def format_usage(self):
+        usage = f"\nusage: {self.prog} {USAGE}\n"
+        hint = f"       {Colors.DIM}Use -h or --help for detailed information{Colors.RESET}\n"
+        options = ("\n" + "\n".join(render_options(group, indent="  ")
+                                    for group in (ARGUMENTS, OPTIONS)) + "\n")
+        return usage + hint + options
+
+    def format_help(self):
+        return get_colored_help()
+
+    def error(self, message):
+        self.print_usage(sys.stderr)
+        self.exit(2, f"\n{Colors.RED}error: {message}{Colors.RESET}\n")
 
 
 class Stop(Exception):
@@ -672,20 +725,13 @@ def run(args, progress):
 
 
 def build_parser():
-    parser = argparse.ArgumentParser(
-        prog="mkvnote_paths.py",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description=DESCRIPTION,
-        epilog=EPILOG)
-    parser.add_argument("csv", metavar="CSV",
-                        help="the CSV exported from Airtable for mkvnote")
-    parser.add_argument("--root", metavar="DIR", default=DEFAULT_ROOT,
-                        help=f"search here instead of {DEFAULT_ROOT}")
-    parser.add_argument("-o", dest="output", metavar="FOLDER",
-                        help="write the new CSV into FOLDER instead of next to the CSV")
-    parser.add_argument("--verify-uniqueness", action="store_true",
-                        help="search the whole server for every row and flag any "
-                             "file found more than once (slower)")
+    parser = HelpParser(prog="mkvnote_paths.py", add_help=False, usage=argparse.SUPPRESS)
+    parser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
+                        help=argparse.SUPPRESS)
+    parser.add_argument("csv", metavar="CSV", help=argparse.SUPPRESS)
+    parser.add_argument("--root", metavar="DIR", default=DEFAULT_ROOT, help=argparse.SUPPRESS)
+    parser.add_argument("-o", dest="output", metavar="FOLDER", help=argparse.SUPPRESS)
+    parser.add_argument("--verify-uniqueness", action="store_true", help=argparse.SUPPRESS)
     return parser
 
 

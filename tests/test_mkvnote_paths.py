@@ -805,12 +805,32 @@ class UnsafePathTests(Base):
 
 class DefaultsTests(Base):
 
+    OPTION_LINES = [r"CSV +The CSV exported", r"--root DIR +Search DIR instead of /Volumes/JPCARCHIVE/",
+                    r"-o FOLDER +Save the new CSV", r"--verify-uniqueness +Flag files found twice"]
+
     def test_help(self):
         run = self.run_script("--help", root=False)
         self.assertEqual(run.code, 0, run.text)
-        for text in ("/Volumes/JPCARCHIVE/", "exit status:", "130", "--verify-uniqueness",
-                     "_mkvnote-paths_<yyyymmdd_hhmmss>.csv"):
-            self.assertIn(text, run.out)
+        headings = [line for line in run.out.splitlines() if line and line == line.lstrip()
+                    and line.isupper() and not line.startswith("=")]
+        self.assertEqual(headings, ["DESCRIPTION", "USAGE", "ARGUMENTS", "OPTIONS",
+                                    "HOW FILES ARE FOUND", "EXAMPLES", "OUTPUT", "EXIT"])
+        for pattern in self.OPTION_LINES + [r"\n    130 interrupted", r"_mkvnote-paths_<yyyymmdd_hhmmss>\.csv"]:
+            self.assertRegex(run.out, pattern)
+        self.assertNotIn("\x1b[", run.out)              # no colors when not a terminal
+
+    def test_argument_error_shows_usage_and_options(self):
+        run = self.run_script(root=False)
+        self.assertEqual(run.code, 2, run.text)
+        self.assertEqual(run.out, "")
+        self.assertTrue(run.err.startswith("\nusage: mkvnote_paths.py CSV [options]\n"
+                                           "       Use -h or --help for detailed information\n"),
+                        run.text)
+        for pattern in self.OPTION_LINES:
+            self.assertRegex(run.err, r"\n  " + pattern)
+        self.assertTrue(run.err.endswith("\nerror: the following arguments are required: CSV\n"),
+                        run.text)
+        self.assertEqual(run.log, [])                   # stopped before reading anything
 
     def test_default_root_is_jpcarchive(self):
         run = self.run_script(self.write_csv([self.row("JPC_AV_00001")]), root=False)
